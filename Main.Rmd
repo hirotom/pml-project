@@ -1,0 +1,84 @@
+---
+title: "Practical Machine Learning - Project: Predicting how well barbel lifts are performed"
+author: "Hiroto Miyake"
+date: "Saturday, January 24, 2015"
+output: html_document
+---
+
+This is an R Markdown document. Markdown is a simple formatting syntax for authoring HTML, PDF, and MS Word documents. For more details on using R Markdown see <http://rmarkdown.rstudio.com>.
+
+When you click the **Knit** button a document will be generated that includes both content as well as the output of any embedded R code chunks within the document. You can embed an R code chunk like this:
+
+```{r}
+summary(cars)
+```
+
+You can also embed plots, for example:
+
+```{r, echo=FALSE}
+plot(cars)
+```
+
+Note that the `echo = FALSE` parameter was added to the code chunk to prevent printing of the R code that generated the plot.
+
+Load source data
+```{r}
+download.file("https://d396qusza40orc.cloudfront.net/predmachlearn/pml-training.csv", "pml-training.csv")
+download.file("https://d396qusza40orc.cloudfront.net/predmachlearn/pml-testing.csv", "pml-testing.csv") 
+df_train <- read.csv(src.train)
+df_test <- read.csv(src.test)
+ncol(df_train)
+```
+
+Clean up training data by 
+1. Removing data identification columns not relavent to prediction (first 7 columns)
+2) Removing unused columns (having entirely NA values) in the test data.  These columns cannot be used as predictors in the model anyways.  
+This reduces the number of columns from 160 to 53, which is more manageable. 
+```{r}
+df_train <- df_train[, -c(1,2,3,4,5,6,7)]
+df_test <- df_test[, -c(1,2,3,4,5,6,7)]
+df_train <- df_train[, colSums(is.na(df_test)) != nrow(df_test)]
+df_test <- df_test[, colSums(is.na(df_test)) != nrow(df_test)]
+ncol(df_train)
+```
+
+Split training data further into training and test subset
+```{r}
+library(caret)
+set.seed(32323)
+inTrain <- createDataPartition(y=df_train$classe, p=0.6, list=FALSE)
+training <- df_train[inTrain,]
+testing <- df_train[-inTrain,]
+```
+
+Model
+```{r}
+fit1 <- randomForest(classe ~. , data=training)
+pred1 <- predict(fit1, testing[,-53])
+confusionMatrix(pred1, testing$classe)
+pred1test <- predict(fit1, df_test[,-53])
+
+```
+
+Model with k-fold cross-validation (5-fold) to reduce overfitting.
+```{r}
+fit2 <- train(classe ~ ., method="rf", data=training, trControl=trainControl(method="cv", number=5))
+pred2 <- predict(fit2, testing[,-53])
+confusionMatrix(pred2, testing$classe)
+pred2test <- predict(fit2, df_test[,-53])
+```
+
+Prepare output result files as instructed.
+```{r}
+pml_write_files = function(x){
+  n = length(x)
+  for(i in 1:n){
+    filename = paste0("problem_id_",i,".txt")
+    write.table(x[i],file=filename,quote=FALSE,row.names=FALSE,col.names=FALSE)
+  }
+}
+
+pml_write_files(pred2test)
+
+```
+
