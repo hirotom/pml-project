@@ -1,5 +1,5 @@
 ---
-title: "Practical Machine Learning - Project: Predicting how well barbel lifts are performed"
+title: "Practical Machine Learning - Project: Predicting how well barbell lifts are performed"
 author: "Hiroto Miyake"
 date: "Saturday, January 24, 2015"
 output: html_document
