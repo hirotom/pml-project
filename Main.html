@@ -58,21 +58,48 @@ if (window.hljs && document.readyState && document.readyState === "complete") {
 </div>
 
 
-<p>Load source data</p>
+<div id="executive-summary" class="section level3">
+<h3>Executive Summary</h3>
+<p>Predictive modeling was developed on a training data that measured various body motions while performing barbell lifts correctly and incorrectly in 5 different classified ways. Random forest method with 5-fold cross validation was employed for the modeling, which resulted in 99% estimated out-of-sample accuracy.</p>
+</div>
+<div id="objective" class="section level3">
+<h3>1. Objective</h3>
+<p>Using devices such as Jawbone Up, Nike FuelBand, and Fitbit it is now possible to collect a large amount of data about personal activity relatively inexpensively. These type of devices are part of the quantified self movement - a group of enthusiasts who take measurements about themselves regularly to improve their health, to find patterns in their behavior, or because they are tech geeks.</p>
+<p>One thing that people regularly do is quantify how much of a particular activity they do, but they rarely quantify how well they do it. In this project, the goal will be to use data from accelerometers on the belt, forearm, arm, and dumbell of 6 participants. They were asked to perform barbell lifts correctly and incorrectly in 5 different ways. More information is available from the website here: <a href="http://groupware.les.inf.puc-rio.br/har">http://groupware.les.inf.puc-rio.br/har</a> (see the section on the Weight Lifting Exercise Dataset)</p>
+<p>The objective of this project is to predict the manner in which they did the exercise. This is the “classe” variable in the training set. You may use any of the other variables to predict with. You should create a report describing how you built your model, how you used cross validation, what you think the expected out of sample error is, and why you made the choices you did. You will also use your prediction model to predict 20 different test cases.</p>
+<ol style="list-style-type: decimal">
+<li>Submission should consist of a link to a Github repo with R markdown and compiled HTML file describing the analysis.</li>
+<li>Apply machine learning algorithm to the 20 test cases available in the test data above. Please submit predictions in appropriate format to the programming assignment for automated grading.</li>
+</ol>
+</div>
+<div id="load-source-data" class="section level3">
+<h3>2. Load source data</h3>
+<p>Downloaded two files and read into data frames.<br />* training data contained 19622 rows and 160 columns. * test data contained 20 rows and 160 columns.</p>
 <pre class="r"><code>#download.file(&quot;https://d396qusza40orc.cloudfront.net/predmachlearn/pml-training.csv&quot;, &quot;pml-training.csv&quot;)
 #download.file(&quot;https://d396qusza40orc.cloudfront.net/predmachlearn/pml-testing.csv&quot;, &quot;pml-testing.csv&quot;) 
 df_train &lt;- read.csv(&quot;pml-training.csv&quot;)
 df_test &lt;- read.csv(&quot;pml-testing.csv&quot;)
-ncol(df_train)</code></pre>
-<pre><code>## [1] 160</code></pre>
-<p>Clean up training data by 1. Removing data identification columns not relavent to prediction (first 7 columns) 2) Removing unused columns (having entirely NA values) in the test data. These columns cannot be used as predictors in the model anyways.<br />This reduces the number of columns from 160 to 53, which is more manageable.</p>
+dim(df_train)</code></pre>
+<pre><code>## [1] 19622   160</code></pre>
+<pre class="r"><code>dim(df_test)</code></pre>
+<pre><code>## [1]  20 160</code></pre>
+</div>
+<div id="clean-up-training-data" class="section level3">
+<h3>3. Clean up training data</h3>
+<p>To make prediction more manageable, reduced the number of columns from 160 to 53 to reduce the number of predictors by… 1. Remove data identification columns not relavent for prediction (first 7 columns). 2) Remove unused columns (having entirely NA values) in the test data. These columns cannot be used as predictors in the model.</p>
 <pre class="r"><code>df_train &lt;- df_train[, -c(1,2,3,4,5,6,7)]
 df_test &lt;- df_test[, -c(1,2,3,4,5,6,7)]
 df_train &lt;- df_train[, colSums(is.na(df_test)) != nrow(df_test)]
 df_test &lt;- df_test[, colSums(is.na(df_test)) != nrow(df_test)]
 ncol(df_train)</code></pre>
 <pre><code>## [1] 53</code></pre>
-<p>Split training data further into training and test subset</p>
+<pre class="r"><code>colnames(df_train)[53]</code></pre>
+<pre><code>## [1] &quot;classe&quot;</code></pre>
+<p>53rd column of the training data is the outcome variable “classe”</p>
+</div>
+<div id="develop-prediction-from-the-training-data" class="section level3">
+<h3>4. Develop prediction from the training data</h3>
+<p>Training data has been further splitinto training and test subset. 60% of the training data has been reserved to develop prediction model, and the remaining has been reserved to test that model out of development sample.</p>
 <pre class="r"><code>library(caret)</code></pre>
 <pre><code>## Loading required package: lattice
 ## Loading required package: ggplot2</code></pre>
@@ -80,7 +107,7 @@ ncol(df_train)</code></pre>
 inTrain &lt;- createDataPartition(y=df_train$classe, p=0.6, list=FALSE)
 training &lt;- df_train[inTrain,]
 testing &lt;- df_train[-inTrain,]</code></pre>
-<p>Model</p>
+<p>Random forest method has been chosen to develop the prediction, because the outcome is a classification type data.</p>
 <pre class="r"><code>library(randomForest)</code></pre>
 <pre><code>## randomForest 4.6-10
 ## Type rfNews() to see new features/changes/bug fixes.</code></pre>
@@ -118,8 +145,8 @@ confusionMatrix(pred1, testing$classe)</code></pre>
 ## Detection Rate         0.2842   0.1918   0.1723   0.1622   0.1825
 ## Detection Prevalence   0.2858   0.1940   0.1747   0.1629   0.1826
 ## Balanced Accuracy      0.9985   0.9944   0.9927   0.9946   0.9965</code></pre>
-<pre class="r"><code>pred1test &lt;- predict(fit1, df_test[,-53])</code></pre>
-<p>Model with k-fold cross-validation (5-fold) to reduce overfitting.</p>
+<p>The randon forest model above resulted in 99.31% out-of-sample accuracy. The high accuracy of the model indicates potential over-fitting.</p>
+<p>To reduce the risk of over-fitting, another random forest prediction was developed using k-fold cross-validation (5-fold).</p>
 <pre class="r"><code>fit2 &lt;- train(classe ~ ., method=&quot;rf&quot;, data=training, trControl=trainControl(method=&quot;cv&quot;, number=5))
 pred2 &lt;- predict(fit2, testing[,-53])
 confusionMatrix(pred2, testing$classe)</code></pre>
@@ -154,8 +181,16 @@ confusionMatrix(pred2, testing$classe)</code></pre>
 ## Detection Rate         0.2837   0.1905   0.1727   0.1614   0.1823
 ## Detection Prevalence   0.2861   0.1919   0.1767   0.1630   0.1823
 ## Balanced Accuracy      0.9970   0.9916   0.9929   0.9912   0.9958</code></pre>
-<pre class="r"><code>pred2test &lt;- predict(fit2, df_test[,-53])</code></pre>
-<p>Prepare output result files as instructed.</p>
+<p>Random forest model with 5-fold cross validation resulted in 99.06% out-of-sample accuracy. The consistency in accuracy between the non-cross-validated and the cross-validated models confirmed that risk of over-fitting is minimal. This is the final model.</p>
+</div>
+<div id="run-prediction-on-test-data-set" class="section level3">
+<h3>5. Run prediction on test data set</h3>
+<p>The final model was used to perform prediction of the test data set.</p>
+<pre class="r"><code>pred3 &lt;- predict(fit2, df_test)
+pred3</code></pre>
+<pre><code>##  [1] B A B A A E D B A A B C B A E E A B B B
+## Levels: A B C D E</code></pre>
+<p>Output result files was prepared as instructed.</p>
 <pre class="r"><code>pml_write_files = function(x){
   n = length(x)
   for(i in 1:n){
@@ -164,7 +199,8 @@ confusionMatrix(pred2, testing$classe)</code></pre>
   }
 }
 
-pml_write_files(pred2test)</code></pre>
+pml_write_files(pred3)</code></pre>
+</div>
 
 
 </div>
